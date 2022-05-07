@@ -375,9 +375,9 @@ The json file has the same syntax as the ``constraints`` key in the global confi
 Here, we override the global constraint that we applied in the global config. Which means
 that the ``Small`` attribute of the ``Iris`` layer will always be used in combination 
 with the ``Low`` attribute of the ``Bottom lid`` layer.
-So the small iris will never be used except the the low bottom lid.
+So the small iris will never be used except the the low bottom lid since it is blacklisted in the global constraints.
 
-**Be carefull, if you have too complex constraints or don't pay attention you can end up with a situation where no combinations a possible**
+**Be carefull, if you have too complex constraints or don't pay attention you can end up with a situation where no combinations a possible
 this situation is tricky to detect so no clear error will be returned, you will just get a weird traceback message**
 
 **If you want no whitelist, don't put the whitelist keyword at all, if you want nothing for a certain layer, create a transparent png, and whitelist it.
