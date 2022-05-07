@@ -90,6 +90,12 @@ const getElements = (path, constraints) => {
           console.log(`ERROR: Could not parse the constraints of the file ${constraintPath}`)
         }
       }
+
+      // if(elementConstraints.whitelist) {
+      //   Object.entries(elementConstraints.whitelist).forEach(([layer, attributes]) => {
+      //     if(attributes.length === 0) { delete elementConstraints.whitelist[layer]}
+      //   })
+      // }
         
       return {
         id: index,

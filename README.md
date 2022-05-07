@@ -318,7 +318,7 @@ You can force or avoid certain combinations by using blacklist and whitelists co
 Constraints can be defined globaly or localy.
 To define global contraints, add a ``contraints`` key in the ``layerConfiguration`` key of the file ``config.js``:
 
-```json
+```js
 
 const layerConfigurations = [
   {
@@ -345,7 +345,7 @@ const layerConfigurations = [
 
 This constraints will be applied to all the attributes of the ``Bottom lid`` layer that does not have any local constraints.
 In this case, the attribute ``Small`` of the layer ``Iris`` will never be used in combinations with the other attributes.
-*Be carefull, the name of the layers and attributes are case sensitive*
+**Be carefull, the name of the layers and attributes are case sensitive**
 
 To define local contraints, add a .json file next the to attribute you want to apply the constraint to,
 with the same name and without the rarity if any:
@@ -376,6 +376,12 @@ Here, we override the global constraint that we applied in the global config. Wh
 that the ``Small`` attribute of the ``Iris`` layer will always be used in combination 
 with the ``Low`` attribute of the ``Bottom lid`` layer.
 So the small iris will never be used except the the low bottom lid.
+
+**Be carefull, if you have too complex constraints or don't pay attention you can end up with a situation where no combinations a possible**
+this situation is tricky to detect so no clear error will be returned, you will just get a weird traceback message**
+
+**If you want no whitelist, don't put the whitelist keyword at all, if you want nothing for a certain layer, create a transparent png, and whitelist it.
+A whitelist with an empty list will just create an imposible situation and you will get an error.**
 
 You can use ``*`` as layer name if you want to apply a constraint to multiple layers:
 
