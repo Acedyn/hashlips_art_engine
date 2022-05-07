@@ -397,7 +397,7 @@ constraints: {
 }
 ```
 
-Here, this whitelist constraint will be default constraint to all the layers that does not have any global constraints.
+Here, this constraint will be default global constraint to all the layers that does not have any global constraints.
 The ``*`` can also be used for constraints themselves:
 
 ```json
