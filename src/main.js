@@ -1,6 +1,8 @@
 const basePath = process.cwd();
 const { NETWORK } = require(`${basePath}/constants/network.js`);
 const fs = require("fs");
+const { constants } = require("http2");
+const nodePath = require("path");
 const sha1 = require(`${basePath}/node_modules/sha1`);
 const { createCanvas, loadImage } = require(`${basePath}/node_modules/canvas`);
 const buildDir = `${basePath}/build`;
@@ -35,7 +37,7 @@ let hashlipsGiffer = null;
 
 const buildSetup = () => {
   if (fs.existsSync(buildDir)) {
-    fs.rmdirSync(buildDir, { recursive: true });
+    fs.rmSync(buildDir, { recursive: true });
   }
   fs.mkdirSync(buildDir);
   fs.mkdirSync(`${buildDir}/json`);
@@ -68,28 +70,41 @@ const cleanName = (_str) => {
   return nameWithoutWeight;
 };
 
-const getElements = (path) => {
+const getElements = (path, constraints) => {
   return fs
     .readdirSync(path)
     .filter((item) => !/(^|\/)\.[^\/\.]/g.test(item))
+    .filter((item) => !/.+\.json/g.test(item))
     .map((i, index) => {
       if (i.includes("-")) {
         throw new Error(`layer name can not contain dashes, please fix: ${i}`);
       }
+      const name = cleanName(i)
+      let elementConstraints = constraints || {}
+      const constraintPath = nodePath.join(path, name + ".json")
+      if(fs.existsSync(constraintPath)){
+        try {
+          elementConstraints = JSON.parse(fs.readFileSync(constraintPath))
+        } catch(e) {
+          console.log(`ERROR: Could not parse the constraints of the file ${constraintPath}`)
+        }
+      }
+        
       return {
         id: index,
-        name: cleanName(i),
+        name: name,
         filename: i,
         path: `${path}${i}`,
         weight: getRarityWeight(i),
+        constraints: elementConstraints
       };
     });
 };
 
-const layersSetup = (layersOrder) => {
+const layersSetup = (layersOrder, constraints) => {
   const layers = layersOrder.map((layerObj, index) => ({
     id: index,
-    elements: getElements(`${layersDir}/${layerObj.name}/`),
+    elements: getElements(`${layersDir}/${layerObj.name}/`, constraints),
     name:
       layerObj.options?.["displayName"] != undefined
         ? layerObj.options?.["displayName"]
@@ -281,19 +296,62 @@ const isDnaUnique = (_DnaList = new Set(), _dna = "") => {
 
 const createDna = (_layers) => {
   let randNum = [];
+  let selectedElements = [];
+  let blacklist = {}
+  let whitelist = {}
   _layers.forEach((layer) => {
     var totalWeight = 0;
-    layer.elements.forEach((element) => {
+    let elementCandidates = [...layer.elements]
+
+    // Remove the blacklisted elements from the set
+    if(blacklist[layer.name] || blacklist["*"]) {
+      const blackListedElements = [...blacklist[layer.name] || [], ...blacklist["*"] || []]
+      elementCandidates = elementCandidates.filter(element => !blackListedElements.includes(element.name))
+    }
+    // Remove the non whitelisted elements from the set
+    if(whitelist[layer.name] || whitelist["*"]) {
+      const whiteListedElements = [...whitelist[layer.name] || [], ...whitelist["*"] || []]
+      elementCandidates = elementCandidates.filter(element => whiteListedElements.includes(element.name))
+    }
+
+    elementCandidates = elementCandidates.filter(element => {
+      const blacklistLayers = Object.keys(element.constraints.blacklist || {})
+      const whitelistLayers = Object.keys(element.constraints.whitelist || {})
+      for(const selectedElement of selectedElements) {
+        if(blacklistLayers.includes(selectedElement.layer.name) && element.constraints.blacklist[selectedElement.layer.name].includes(selectedElement.element.name)) {
+          return false
+        }
+        if(whitelistLayers.includes(selectedElement.layer.name) && !element.constraints.whitelist[selectedElement.layer.name].includes(selectedElement.element.name)) {
+          return false
+        }
+      }
+      return true
+    })
+
+    elementCandidates.forEach((element) => {
       totalWeight += element.weight;
     });
     // number between 0 - totalWeight
     let random = Math.floor(Math.random() * totalWeight);
-    for (var i = 0; i < layer.elements.length; i++) {
+    for (var i = 0; i < elementCandidates.length; i++) {
       // subtract the current weight from the random weight until we reach a sub zero value.
-      random -= layer.elements[i].weight;
+      random -= elementCandidates[i].weight;
       if (random < 0) {
+        const selectedElement = elementCandidates[i]
+
+        // Add the blacklist and whitelist of this element to the global blacklist and whitelist
+        const constraintMap = {"whitelist": whitelist, "blacklist": blacklist}
+        Object.entries(constraintMap).forEach(([constraintName, existingConstraints]) => {
+          if(selectedElement.constraints[constraintName]){
+            Object.entries(selectedElement.constraints[constraintName]).forEach(([key, value]) => {
+              existingConstraints[key] = new Set([...existingConstraints[key] || [], ...value])
+            })
+          }
+        })
+
+        selectedElements.push({layer: {layer}, element: {selectedElement}})
         return randNum.push(
-          `${layer.elements[i].id}:${layer.elements[i].filename}${
+          `${selectedElement.id}:${selectedElement.filename}${
             layer.bypassDNA ? "?bypassDNA=true" : ""
           }`
         );
@@ -354,7 +412,7 @@ const startCreating = async () => {
     : null;
   while (layerConfigIndex < layerConfigurations.length) {
     const layers = layersSetup(
-      layerConfigurations[layerConfigIndex].layersOrder
+      layerConfigurations[layerConfigIndex].layersOrder, layerConfigurations[layerConfigIndex].constraints
     );
     while (
       editionCount <= layerConfigurations[layerConfigIndex].growEditionSizeTo
@@ -414,7 +472,7 @@ const startCreating = async () => {
         editionCount++;
         abstractedIndexes.shift();
       } else {
-        console.log("DNA exists!");
+        console.log(`DNA exists! (${failedCount})`);
         failedCount++;
         if (failedCount >= uniqueDnaTorrance) {
           console.log(
