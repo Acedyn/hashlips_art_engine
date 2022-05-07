@@ -80,7 +80,8 @@ const getElements = (path, constraints) => {
         throw new Error(`layer name can not contain dashes, please fix: ${i}`);
       }
       const name = cleanName(i)
-      let elementConstraints = constraints || {}
+      const layer = nodePath.basename(path)
+      let elementConstraints = constraints[layer] || constraints["*"] || {}
       const constraintPath = nodePath.join(path, name + ".json")
       if(fs.existsSync(constraintPath)){
         try {
@@ -349,7 +350,7 @@ const createDna = (_layers) => {
           }
         })
 
-        selectedElements.push({layer: {layer}, element: {selectedElement}})
+        selectedElements.push({layer: layer, element: selectedElement})
         return randNum.push(
           `${selectedElement.id}:${selectedElement.filename}${
             layer.bypassDNA ? "?bypassDNA=true" : ""

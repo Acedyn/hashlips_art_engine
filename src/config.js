@@ -24,7 +24,7 @@ const solanaMetadata = {
 // If you have selected Solana then the collection starts from 0 automatically
 const layerConfigurations = [
   {
-    growEditionSizeTo: 9,
+    growEditionSizeTo: 5,
     layersOrder: [
       { name: "Background" },
       { name: "Eyeball" },
@@ -35,6 +35,11 @@ const layerConfigurations = [
       { name: "Top lid" },
     ],
     constraints: {
+      "Bottom lid": {
+        blacklist: {
+          "Iris": ["Small"]
+        }
+      }
     }
   },
 ];

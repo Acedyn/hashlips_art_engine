@@ -311,3 +311,95 @@ Trait type: Top lid
 ```
 
 Hope you create some awesome artworks with this code 👄
+
+### Blacklist / Whitelist settings
+
+You can force or avoid certain combinations by using blacklist and whitelists constraints.
+Constraints can be defined globaly or localy.
+To define global contraints, add a ``contraints`` key in the ``layerConfiguration`` key of the file ``config.js``:
+
+```json
+
+const layerConfigurations = [
+  {
+    growEditionSizeTo: 9,
+    layersOrder: [
+      { name: "Background" },
+      { name: "Eyeball" },
+      { name: "Eye color" },
+      { name: "Iris" },
+      { name: "Shine" },
+      { name: "Bottom lid" },
+      { name: "Top lid" },
+    ],
+    constraints: {
+      "Bottom lid": {
+        blacklist: {
+          "Iris": ["Small"]
+        }
+      }
+    }
+  },
+];
+```
+
+This constraints will be applied to all the attributes of the ``Bottom lid`` layer that does not have any local constraints.
+In this case, the attribute ``Small`` of the layer ``Iris`` will never be used in combinations with the other attributes.
+*Be carefull, the name of the layers and attributes are case sensitive*
+
+To define local contraints, add a .json file next the to attribute you want to apply the constraint to,
+with the same name and without the rarity if any:
+
+```
+layers
+│
+└───Bottom lid
+│   │   High#30.png
+│   │   Middle#10.png
+│   │   Low#20.png
+│   │   Low.json
+
+```
+
+Here we defined a local constraint for the ``Low`` attribute of the ``Bottom lid`` layer.
+The json file has the same syntax as the ``constraints`` key in the global config:
+
+```json
+{
+    "whitelist": {
+        "Iris": ["Small"]
+    }
+}
+```
+
+Here, we override the global constraint that we applied in the global config. Which means
+that the ``Small`` attribute of the ``Iris`` layer will always be used in combination 
+with the ``Low`` attribute of the ``Bottom lid`` layer.
+So the small iris will never be used except the the low bottom lid.
+
+You can use ``*`` as layer name if you want to apply a constraint to multiple layers:
+
+```js
+... main config ...
+
+constraints: {
+  "*": {
+    whitelist: {
+      "Bottom lid": ["Middle"]
+    }
+  }
+}
+```
+
+Here, this whitelist constraint will be default constraint to all the layers that does not have any global constraints.
+The ``*`` can also be used for constraints themselves:
+
+```json
+{
+    "blacklist": {
+        "*": ["Small"]
+    }
+}
+```
+
+Here we have a local constraint that will blacklist all the attributes named ``Small`` of all the layers.
